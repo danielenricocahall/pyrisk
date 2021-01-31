@@ -1,11 +1,11 @@
+import random
 from display import Display, CursesDisplay
 from player import Player
 from territory import World
 from world import CONNECT, AREAS, MAP, KEY
 import logging
-LOG = logging.getLogger("pyrisk")
-import random
 
+LOG = logging.getLogger("pyrisk")
 
 
 class Game(object):
@@ -13,19 +13,20 @@ class Game(object):
     This class represents an individual game, and contains the main game logic.
     """
     defaults = {
-        "curses": True, #whether to use ncurses for map display
-        "color": True, #whether to use color with ncurses
-        "delay": 0.1, #seconds to sleep after each (ncurses) display update
-        "connect": CONNECT, #the territory connection graph (see world.py)
-        "areas": AREAS, #the territory->continent mapping, and values
-        "cmap": MAP, #the ASCII art map to use
-        "ckey": KEY, #the territority->char mapping key for the map
-        "screen": None, #a curses.window (for use with the curses.wrapper function)
-        "round": None, #the round number
-        "wait": False, #whether to pause and wait for a keypress after each event
-        "history": {}, #the win/loss history for each player, for multiple rounds
-        "deal": False #deal out territories rather than let players choose
+        "curses": True,  # whether to use ncurses for map display
+        "color": True,  # whether to use color with ncurses
+        "delay": 0.1,  # seconds to sleep after each (ncurses) display update
+        "connect": CONNECT,  # the territory connection graph (see world.py)
+        "areas": AREAS,  # the territory->continent mapping, and values
+        "cmap": MAP,  # the ASCII art map to use
+        "ckey": KEY,  # the territority->char mapping key for the map
+        "screen": None,  # a curses.window (for use with the curses.wrapper function)
+        "round": None,  # the round number
+        "wait": False,  # whether to pause and wait for a keypress after each event
+        "history": {},  # the win/loss history for each player, for multiple rounds
+        "deal": False  # deal out territories rather than let players choose
     }
+
     def __init__(self, **options):
         self.options = self.defaults.copy()
         self.options.update(options)
@@ -44,7 +45,6 @@ class Game(object):
                                          self.options['color'], self.options['wait'])
         else:
             self.display = Display()
-
 
     def add_player(self, name, ai_class, **ai_kwargs):
         assert name not in self.players
@@ -70,13 +70,13 @@ class Game(object):
         Calling this method triggers the display to be updated, and any AI
         players that have implemented event() to be notified.
         """
-        
+
         self.display.update(msg, territory=territory, player=player)
-        
+
         LOG.info([str(m) for m in msg])
         for p in self.players.values():
             p.ai.event(msg)
-        
+
     def play(self):
         assert 2 <= len(self.players) <= 5
         self.turn_order = list(self.players)
@@ -85,10 +85,10 @@ class Game(object):
             self.players[name].color = i + 1
             self.players[name].ord = ord('\/-|+*'[i])
             self.players[name].ai.start()
-        self.event(("start", ))
+        self.event(("start",))
         live_players = len(self.players)
         self.initial_placement()
-        
+
         while live_players > 1:
             if self.player.alive:
                 choices = self.player.ai.reinforce(self.player.reinforcements)
@@ -107,7 +107,7 @@ class Game(object):
                         continue
                     t.forces += f
                     self.event(("reinforce", self.player, t, f), territory=[t], player=[self.player.name])
-                
+
                 for src, target, attack, move in self.player.ai.attack():
                     st = self.world.territory(src)
                     tt = self.world.territory(target)
@@ -130,7 +130,8 @@ class Game(object):
                     opponent = tt.owner
                     victory = self.combat(st, tt, attack, move)
                     final_forces = (st.forces, tt.forces)
-                    self.event(("conquer" if victory else "defeat", self.player, opponent, st, tt, initial_forces, final_forces), territory=[st, tt], player=[self.player.name, tt.owner.name])
+                    self.event(("conquer" if victory else "defeat", self.player, opponent, st, tt, initial_forces,
+                                final_forces), territory=[st, tt], player=[self.player.name, tt.owner.name])
                 freemove = self.player.ai.freemove()
                 if freemove:
                     src, target, count = freemove
@@ -185,7 +186,7 @@ class Game(object):
                     n_def -= 1
                 else:
                     n_atk -= 1
-        
+
         if n_def == 0:
             move = f_move(n_atk)
             min_move = min(n_atk - 1, 3)
@@ -207,7 +208,7 @@ class Game(object):
 
     def initial_placement(self):
         empty = list(self.world.territories.values())
-        available = 35 - 2*len(self.players)
+        available = 35 - 2 * len(self.players)
         remaining = {p: available for p in self.players}
 
         if self.options['deal']:
@@ -237,7 +238,7 @@ class Game(object):
                 empty.remove(t)
                 self.event(("claim", self.player, t), territory=[t], player=[self.player.name])
                 self.turn += 1
-        
+
         while sum(remaining.values()) > 0:
             if remaining[self.player.name] > 0:
                 choice = self.player.ai.initial_placement(None, remaining[self.player.name])
@@ -254,4 +255,3 @@ class Game(object):
                 remaining[self.player.name] -= 1
                 self.event(("reinforce", self.player, t, 1), territory=[t], player=[self.player.name])
                 self.turn += 1
-
